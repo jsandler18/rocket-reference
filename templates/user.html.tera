@@ -1,0 +1,3 @@
+<b> First Name: </b> {{ first_name }} <br>
+<b> Last Name: </b> {{ last_name }} <br>
+<b> birthday: </b> {{ birthdate }} <br>
