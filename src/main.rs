@@ -1,5 +1,5 @@
 
-#![feature(plugin)]
+#![feature(plugin, custom_derive)]
 #![plugin(rocket_codegen)]
 extern crate rocket;
 #[macro_use]
@@ -15,10 +15,13 @@ pub mod user;
 pub mod db;
 
 use rocket_contrib::Template;
+use rocket::response::{NamedFile, Redirect};
+use rocket::request::Form;
+use chrono::naive::NaiveDate;
 use tera::Context;
 
 
-#[get("/<id>")]
+#[get("/user/<id>")]
 fn user(id: i32, conn: db::DbConn) -> Template {
     let user = user::User::lookup(id, &conn);
     Template::render("user", &user)
@@ -32,6 +35,25 @@ fn index(conn: db::DbConn) -> Template {
     Template::render("index", &res)
 }
 
+#[get("/create")]
+fn create_user_page() -> NamedFile {
+    NamedFile::open("./static/create.html").expect("could not find file")
+}
+
+#[post("/create", data="<user>")]
+fn create_user(user: Form<user::UserForm>, conn: db::DbConn) -> Redirect {
+    let user = user.into_inner();
+    let user = user::NewUser { 
+                            firstname: user.firstname, 
+                            lastname: user.lastname,
+                            username: user.username, 
+                            password: user.password, 
+                            birthday: NaiveDate::parse_from_str(user.birthday.as_ref(), "%Y-%m-%d").unwrap()
+    };
+    user::User::insert(user, &conn);
+    Redirect::to("/")
+}
+
 fn main() {
-    rocket::ignite().mount("/", routes![index, user]).manage(db::init_pool()).attach(Template::fairing()).launch();
+    rocket::ignite().mount("/", routes![index, user, create_user_page, create_user]).manage(db::init_pool()).attach(Template::fairing()).launch();
 }

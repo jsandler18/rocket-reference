@@ -1,7 +1,8 @@
 use chrono::naive::NaiveDate;
 use diesel::pg::PgConnection;
+use diesel;
 use diesel::prelude::*;
-use self::schema::users::dsl::{users};
+use self::schema::users;
 
 mod schema {
     table! {
@@ -10,6 +11,8 @@ mod schema {
             firstname -> Varchar,
             lastname -> Varchar,
             birthday -> Date,
+            username -> Varchar,
+            password -> Varchar,
         }
     }
 }
@@ -18,17 +21,42 @@ mod schema {
 #[derive(Queryable, Serialize)]
 pub struct User {
     pub id: i32,
-    pub first_name: String,
-    pub last_name: String,
-    pub birthdate: NaiveDate
+    pub firstname: String,
+    pub lastname: String,
+    pub birthday: NaiveDate,
+    pub username: String,
+    pub password: String
+}
+
+#[derive(Insertable)]
+#[table_name="users"]
+pub struct NewUser {
+    pub firstname: String,
+    pub lastname: String,
+    pub birthday: NaiveDate,
+    pub username: String,
+    pub password: String
+}
+
+#[derive(FromForm)]
+pub struct UserForm {
+    pub firstname: String,
+    pub lastname: String,
+    pub username: String,
+    pub password: String,
+    pub birthday: String
 }
 
 impl User {
     pub fn all(conn: &PgConnection) -> Vec<User> {
-        users.load::<User>(conn).expect("Error loading users")
+        users::table.load::<User>(conn).expect("Error loading users")
     }
 
     pub fn lookup(id: i32, conn: &PgConnection) -> User {
-        users.find(id).get_result::<User>(&*conn).expect("Error loading users")
+        users::table.find(id).get_result::<User>(&*conn).expect("Error loading users")
+    }
+
+    pub fn insert(new_user: NewUser, conn: &PgConnection) -> bool {
+        !diesel::insert_into(users::table).values(&new_user).execute(conn).is_err()
     }
 }
