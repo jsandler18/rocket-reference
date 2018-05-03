@@ -6,10 +6,10 @@ extern crate rocket;
 extern crate diesel;
 extern crate rocket_contrib;
 extern crate dotenv;
-extern crate chrono;
 #[macro_use]
 extern crate serde_derive;
 extern crate tera;
+extern crate pwhash;
 
 pub mod user;
 pub mod db;
@@ -17,7 +17,6 @@ pub mod db;
 use rocket_contrib::Template;
 use rocket::response::{NamedFile, Redirect};
 use rocket::request::Form;
-use chrono::naive::NaiveDate;
 use tera::Context;
 
 
@@ -43,14 +42,7 @@ fn create_user_page() -> NamedFile {
 #[post("/create", data="<user>")]
 fn create_user(user: Form<user::UserForm>, conn: db::DbConn) -> Redirect {
     let user = user.into_inner();
-    let user = user::NewUser { 
-                            firstname: user.firstname, 
-                            lastname: user.lastname,
-                            username: user.username, 
-                            password: user.password, 
-                            birthday: NaiveDate::parse_from_str(user.birthday.as_ref(), "%Y-%m-%d").unwrap()
-    };
-    user::User::insert(user, &conn);
+    user::User::insert(user.into(), &conn);
     Redirect::to("/")
 }
 

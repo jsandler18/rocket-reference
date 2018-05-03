@@ -1,18 +1,17 @@
-use chrono::naive::NaiveDate;
 use diesel::pg::PgConnection;
 use diesel;
 use diesel::prelude::*;
 use self::schema::users;
+use pwhash::sha256_crypt;
 
 mod schema {
     table! {
         users (id) {
             id -> Int4,
-            firstname -> Varchar,
-            lastname -> Varchar,
-            birthday -> Date,
-            username -> Varchar,
-            password -> Varchar,
+            username -> Text,
+            first_name -> Text,
+            last_name -> Text,
+            password_hash -> Varchar,
         }
     }
 }
@@ -21,30 +20,27 @@ mod schema {
 #[derive(Queryable, Serialize)]
 pub struct User {
     pub id: i32,
-    pub firstname: String,
-    pub lastname: String,
-    pub birthday: NaiveDate,
     pub username: String,
-    pub password: String
+    pub first_name: String,
+    pub last_name: String,
+    pub password_hash: String
 }
 
 #[derive(Insertable)]
 #[table_name="users"]
 pub struct NewUser {
-    pub firstname: String,
-    pub lastname: String,
-    pub birthday: NaiveDate,
     pub username: String,
-    pub password: String
+    pub first_name: String,
+    pub last_name: String,
+    pub password_hash: String
 }
 
 #[derive(FromForm)]
 pub struct UserForm {
-    pub firstname: String,
-    pub lastname: String,
     pub username: String,
     pub password: String,
-    pub birthday: String
+    pub first_name: String,
+    pub last_name: String,
 }
 
 impl User {
@@ -58,5 +54,16 @@ impl User {
 
     pub fn insert(new_user: NewUser, conn: &PgConnection) -> bool {
         !diesel::insert_into(users::table).values(&new_user).execute(conn).is_err()
+    }
+}
+
+impl From<UserForm> for NewUser {
+    fn from(form: UserForm) -> Self {
+        NewUser {
+            username: form.username,
+            first_name: form.first_name,
+            last_name: form.last_name,
+            password_hash: sha256_crypt::hash(form.password.as_str()).expect("Could Not has password")
+        }
     }
 }

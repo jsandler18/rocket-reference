@@ -1,5 +1,4 @@
 <b> Username: </b> {{ username }} <br>
-<b> Password: </b> {{ password }} <br>
-<b> First Name: </b> {{ firstname }} <br>
-<b> Last Name: </b> {{ lastname }} <br>
-<b> birthday: </b> {{ birthday }} <br>
+<b> Password: </b> {{ password_hash }} <br>
+<b> First Name: </b> {{ first_name }} <br>
+<b> Last Name: </b> {{ last_name }} <br>
