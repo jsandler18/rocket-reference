@@ -28,28 +28,15 @@ pub struct User {
 
 #[derive(Insertable)]
 #[table_name="users"]
-pub struct NewUser {
-    pub username: String,
-    pub first_name: String,
-    pub last_name: String,
-    pub password_hash: String
-}
-
-#[derive(FromForm)]
-pub struct UserForm {
-    pub username: String,
-    pub password: String,
-    pub first_name: String,
-    pub last_name: String,
-}
-
-#[derive(FromForm)]
-pub struct LoginForm {
-    pub username: String,
-    pub password: String,
+struct NewUser<'a> {
+    username: &'a str,
+    first_name: &'a str,
+    last_name: &'a str,
+    password_hash: &'a str
 }
 
 impl User {
+
     pub fn all(conn: &PgConnection) -> Vec<User> {
         users::table.load::<User>(conn).expect("Error loading users")
     }
@@ -58,8 +45,15 @@ impl User {
         users::table.find(id).get_result::<User>(&*conn).expect("Error loading users")
     }
 
-    pub fn insert(new_user: NewUser, conn: &PgConnection) -> bool {
-        !diesel::insert_into(users::table).values(&new_user).execute(conn).is_err()
+    pub fn insert(username: &str, password: &str, first_name: &str, last_name: &str, conn: &PgConnection) -> Option<User> {
+        let pwhash = sha256_crypt::hash(password).expect("Could Not Hash Password");
+        let new_user = NewUser { 
+            username, 
+            first_name, 
+            last_name, 
+            password_hash: pwhash.as_str()
+        };
+        diesel::insert_into(users::table).values(&new_user).get_result::<User>(conn).ok()
     }
 
     pub fn authenticate(user: &str, pass: &str, conn: &PgConnection) -> Option<i32> {
@@ -71,16 +65,5 @@ impl User {
                             } else {
                                 None
                             })
-    }
-}
-
-impl From<UserForm> for NewUser {
-    fn from(form: UserForm) -> Self {
-        NewUser {
-            username: form.username,
-            first_name: form.first_name,
-            last_name: form.last_name,
-            password_hash: sha256_crypt::hash(form.password.as_str()).expect("Could Not has password")
-        }
     }
 }

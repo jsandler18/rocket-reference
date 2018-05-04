@@ -11,7 +11,8 @@ extern crate serde_derive;
 extern crate tera;
 extern crate pwhash;
 
-pub mod user;
+pub mod models;
+pub mod forms;
 pub mod db;
 
 use rocket_contrib::Template;
@@ -20,6 +21,8 @@ use rocket::http::{Cookies, Cookie};
 use rocket::request::{Form, FlashMessage};
 use tera::Context;
 
+use models::user;
+use forms::{create_user, login};
 
 #[get("/user/<id>")]
 fn user(id: i32, mut cookies: Cookies, conn: db::DbConn) -> Template {
@@ -45,9 +48,9 @@ fn create_user_page() -> NamedFile {
 }
 
 #[post("/create", data="<user>")]
-fn create_user(user: Form<user::UserForm>, conn: db::DbConn) -> Redirect {
+fn create_user(user: Form<create_user::CreateUser>, conn: db::DbConn) -> Redirect {
     let user = user.into_inner();
-    user::User::insert(user.into(), &conn);
+    user::User::insert(user.username.as_str(), user.password.as_str(), user.first_name.as_str(), user.last_name.as_str(), &conn);
     Redirect::to("/")
 }
 
@@ -66,7 +69,7 @@ fn login_page(flash: Option<FlashMessage>) -> Template {
 }
 
 #[post("/login", data="<form>")]
-fn login(mut cookies: Cookies, form: Form<user::LoginForm>, conn: db::DbConn) -> Result<Redirect, Flash<Redirect>> {
+fn login(mut cookies: Cookies, form: Form<login::Login>, conn: db::DbConn) -> Result<Redirect, Flash<Redirect>> {
    let form = form.into_inner();
    match user::User::authenticate(form.username.as_str(), form.password.as_str(), &conn) {
         None => Err(Flash::error(Redirect::to("/login"), "Invalid username or password")),
