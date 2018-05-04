@@ -43,6 +43,12 @@ pub struct UserForm {
     pub last_name: String,
 }
 
+#[derive(FromForm)]
+pub struct LoginForm {
+    pub username: String,
+    pub password: String,
+}
+
 impl User {
     pub fn all(conn: &PgConnection) -> Vec<User> {
         users::table.load::<User>(conn).expect("Error loading users")
@@ -54,6 +60,17 @@ impl User {
 
     pub fn insert(new_user: NewUser, conn: &PgConnection) -> bool {
         !diesel::insert_into(users::table).values(&new_user).execute(conn).is_err()
+    }
+
+    pub fn authenticate(user: &str, pass: &str, conn: &PgConnection) -> Option<i32> {
+        use self::schema::users::dsl::*;
+
+        users.filter(username.eq(user)).get_result::<User>(conn).ok()
+            .and_then(|u| if sha256_crypt::verify(pass,u.password_hash.as_str()) {
+                                Some(u.id)
+                            } else {
+                                None
+                            })
     }
 }
 

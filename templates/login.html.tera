@@ -1,0 +1,8 @@
+{% if error == true %}
+<b> {{ error_name }} : {{ error_msg }} </b>
+{% endif %}
+<form action="/login" method="post">
+    <b> Username: </b> <input type="text" name="username"><br>
+    <b> Password: </b> <input type="text" name="password"><br>
+    <input type="submit">
+</form>
